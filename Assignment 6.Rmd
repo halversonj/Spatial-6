@@ -48,8 +48,6 @@ st_write(HPC_sf, "HPC_landmarks.csv", layer_options = "GEOMETRY=AS_XY", append =
 HPC_landmarks_2 <- read_csv("HPC_landmarks.csv")
 ```
 
-
-
 ### Plot on Map
 ```{r}
 ownership_palette <- colorNumeric(c("lightblue", "darkblue"),
@@ -64,10 +62,57 @@ ownership_map <- leaflet(ownership_Hennepin) %>%
                             "Ownership tenure: ", ownership_Hennepin$ownership_tenureE, " (", 
                             ownership_Hennepin$pct_ownership, "%)", sep = "")) %>%
     addLegend("bottomright", pal = ownership_palette, values = ~pct_ownership,
-    title = "Percent of tenure<br/>owned",
+    title = "Percent home ownership<br/>and Heritage Preservation<br/>Commission Landmarks",
     labFormat = labelFormat(suffix = "%"),
     opacity = 1)
 
 ownership_map
 ```
+
+### Add points to map of ownership
+```{r}
+ownership_map_2 <- ownership_map %>%
+  addMarkers(lng = HPC_landmarks_2$X,
+             lat = HPC_landmarks_2$Y,
+             popup = HPC_landmarks_2$Name)
+
+ownership_map_2
+```
+
+### Set Map Extents
+```{r}
+limits <- st_bbox(ownership_Hennepin)
+
+ownership_map_3 <- ownership_map_2 %>%
+  fitBounds( lng1 = as.numeric(limits[1]),
+                lat1 = as.numeric(limits[2]),
+                lng2 = as.numeric(limits[3]),
+                lat2 = as.numeric(limits[4])) %>%
+   setMaxBounds( lng1 = as.numeric(limits[1]),
+                lat1 = as.numeric(limits[2]),
+                lng2 = as.numeric(limits[3]),
+                lat2 = as.numeric(limits[4]))
+
+ownership_map_3
+```
+
+### Add circle markers for historic landmarks
+```{r}
+ownership_map_4 <- ownership_map %>%
+  addCircleMarkers(stroke = FALSE, color = "black", fillOpacity = 1, radius = 3,
+                   lng = HPC_landmarks_2$X,
+                   lat = HPC_landmarks_2$Y,
+                   popup = HPC_landmarks_2$Name) %>%
+   fitBounds( lng1 = as.numeric(limits[1]),
+                lat1 = as.numeric(limits[2]),
+                lng2 = as.numeric(limits[3]),
+                lat2 = as.numeric(limits[4])) %>%
+   setMaxBounds( lng1 = as.numeric(limits[1]),
+                lat1 = as.numeric(limits[2]),
+                lng2 = as.numeric(limits[3]),
+                lat2 = as.numeric(limits[4])) 
+
+ownership_map_4
+```
+
 
