@@ -1,0 +1,73 @@
+---
+title: "Assignment 6"
+author: "Jack Halverson"
+date: "10/12/2021"
+output: html_document
+---
+
+### Load Packages
+```{r}
+library(leaflet)
+library(sf)
+library(tidyverse)
+library(tidycensus)
+library(ggthemes)
+library(ggspatial)
+library(htmlwidgets)
+library(tidytransit)
+library(osmextract)
+library(tigris)
+```
+
+### Get Census Data and Create New % Column, get HPC Landmarks data
+```{r}
+ownership_Hennepin <- get_acs(geography = "tract", county = "Hennepin", state = "MN", 
+                           year = 2019, survey = "acs5",
+                           variables = c(total_tenure = "B25003_001", ownership_tenure = "B25003_002"),
+                           output = "wide", geometry = TRUE)
+
+Minneapolis_city_limits <- places("Minnesota") %>%
+  filter(NAME == "Minneapolis")
+
+ownership_Hennepin <- ownership_Hennepin[Minneapolis_city_limits,]
+
+ownership_Hennepin <- ownership_Hennepin %>%
+  select(-total_tenureM, -ownership_tenureM) %>%
+  filter(total_tenureE > 0) %>%
+  mutate(pct_ownership = round(100 * ownership_tenureE / total_tenureE, 1))
+
+
+HPC_landmarks <- st_read("HPC_Landmarks.kml")
+
+HPC_sf <- st_as_sf(HPC_landmarks, 
+                          coords = c("HPC_lon", "HPC_lat"), 
+                          crs = "WGS84")
+
+st_write(HPC_sf, "HPC_landmarks.csv", layer_options = "GEOMETRY=AS_XY", append = FALSE)
+
+HPC_landmarks_2 <- read_csv("HPC_landmarks.csv")
+```
+
+
+
+### Plot on Map
+```{r}
+ownership_palette <- colorNumeric(c("lightblue", "darkblue"),
+                                ownership_Hennepin$pct_ownership)
+
+ownership_map <- leaflet(ownership_Hennepin) %>%
+  addProviderTiles("Stamen.TonerLite") %>%
+  addPolygons(fillColor = ~ownership_palette(pct_ownership), weight = 1, color = "gray", fillOpacity = 0.7,
+              highlightOptions = highlightOptions(fillColor = "yellow", fillOpacity = 0.9),
+              label = ownership_Hennepin$NAME,
+              popup = paste("Total housing: ", ownership_Hennepin$total_tenureE, "<br/>",
+                            "Ownership tenure: ", ownership_Hennepin$ownership_tenureE, " (", 
+                            ownership_Hennepin$pct_ownership, "%)", sep = "")) %>%
+    addLegend("bottomright", pal = ownership_palette, values = ~pct_ownership,
+    title = "Percent of tenure<br/>owned",
+    labFormat = labelFormat(suffix = "%"),
+    opacity = 1)
+
+ownership_map
+```
+
