@@ -1,12 +1,11 @@
 ---
 title: "Assignment 6"
 author: "Jack Halverson"
-date: "10/12/2021"
+date: "10/13/2021"
 output: html_document
 ---
 
-### Load Packages
-```{r}
+```{r, echo = FALSE, warning = FALSE, results = FALSE, message = FALSE}
 library(leaflet)
 library(sf)
 library(tidyverse)
@@ -19,8 +18,7 @@ library(osmextract)
 library(tigris)
 ```
 
-### Get Census Data and Create New % Column, get HPC Landmarks data
-```{r}
+```{r, echo = FALSE, warning = FALSE, results = FALSE, message = FALSE}
 ownership_Hennepin <- get_acs(geography = "tract", county = "Hennepin", state = "MN", 
                            year = 2019, survey = "acs5",
                            variables = c(total_tenure = "B25003_001", ownership_tenure = "B25003_002"),
@@ -48,8 +46,7 @@ st_write(HPC_sf, "HPC_landmarks.csv", layer_options = "GEOMETRY=AS_XY", append =
 HPC_landmarks_2 <- read_csv("HPC_landmarks.csv")
 ```
 
-### Plot on Map
-```{r}
+```{r, echo = FALSE, warning = FALSE}
 ownership_palette <- colorNumeric(c("lightblue", "darkblue"),
                                 ownership_Hennepin$pct_ownership)
 
@@ -62,28 +59,20 @@ ownership_map <- leaflet(ownership_Hennepin) %>%
                             "Ownership tenure: ", ownership_Hennepin$ownership_tenureE, " (", 
                             ownership_Hennepin$pct_ownership, "%)", sep = "")) %>%
     addLegend("bottomright", pal = ownership_palette, values = ~pct_ownership,
-    title = "Percent home ownership<br/>and Heritage Preservation<br/>Commission Landmarks",
+    title = "Percent home<br/>ownership",
     labFormat = labelFormat(suffix = "%"),
     opacity = 1)
-
-ownership_map
+```
+```{r, echo = FALSE, warning = FALSE, results = FALSE, message = FALSE}
+acs_vars <- load_variables(2019, "acs5")
 ```
 
-### Add points to map of ownership
-```{r}
-ownership_map_2 <- ownership_map %>%
-  addMarkers(lng = HPC_landmarks_2$X,
-             lat = HPC_landmarks_2$Y,
-             popup = HPC_landmarks_2$Name)
 
-ownership_map_2
-```
-
-### Set Map Extents
-```{r}
+### Owner-Occupied Housing Stock in Minneapolis, MN
+```{r, echo = FALSE}
 limits <- st_bbox(ownership_Hennepin)
 
-ownership_map_3 <- ownership_map_2 %>%
+ownership_map_2 <- ownership_map %>%
   fitBounds( lng1 = as.numeric(limits[1]),
                 lat1 = as.numeric(limits[2]),
                 lng2 = as.numeric(limits[3]),
@@ -93,26 +82,5 @@ ownership_map_3 <- ownership_map_2 %>%
                 lng2 = as.numeric(limits[3]),
                 lat2 = as.numeric(limits[4]))
 
-ownership_map_3
+ownership_map_2
 ```
-
-### Add circle markers for historic landmarks
-```{r}
-ownership_map_4 <- ownership_map %>%
-  addCircleMarkers(stroke = FALSE, color = "black", fillOpacity = 1, radius = 3,
-                   lng = HPC_landmarks_2$X,
-                   lat = HPC_landmarks_2$Y,
-                   popup = HPC_landmarks_2$Name) %>%
-   fitBounds( lng1 = as.numeric(limits[1]),
-                lat1 = as.numeric(limits[2]),
-                lng2 = as.numeric(limits[3]),
-                lat2 = as.numeric(limits[4])) %>%
-   setMaxBounds( lng1 = as.numeric(limits[1]),
-                lat1 = as.numeric(limits[2]),
-                lng2 = as.numeric(limits[3]),
-                lat2 = as.numeric(limits[4])) 
-
-ownership_map_4
-```
-
-
